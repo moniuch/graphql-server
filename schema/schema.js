@@ -36,9 +36,16 @@ const AuthorType = new GraphQLObjectType({
 		lastName: { type: GraphQLString },
 		books: {
 			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
 			resolve(parent, args) {
 				const { id } = parent;
-				return Book.find({ authorId: id });
+				const { exclude } = args;
+
+				if (exclude) {
+					return Book.find({ $and: [{ authorId: id }, { _id: { $ne: exclude } }] });
+				} else {
+					return Book.find({ authorId: id });
+				}
 			},
 		},
 	}),
@@ -88,6 +95,7 @@ const RootQuery = new GraphQLObjectType({
 		},
 		books: {
 			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
 			resolve() {
 				return Book.find({});
 			},
