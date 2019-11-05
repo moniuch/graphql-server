@@ -1,5 +1,5 @@
 const graphql = require('graphql');
-const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLID, GraphQLInt, GraphQLList, GraphQLNonNull } = graphql;
+const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLID, GraphQLList, GraphQLNonNull } = graphql;
 
 const Book = require('../models/book');
 const Author = require('../models/author');
@@ -10,20 +10,30 @@ const BookType = new GraphQLObjectType({
 	fields: () => ({
 		id: { type: GraphQLID },
 		name: { type: GraphQLString },
+		year: { type: GraphQLString },
 		genre: {
 			type: GenreType,
-			resolve(parent, args) {
+			resolve(parent) {
 				const { genreId } = parent;
 				return Genre.findById(genreId);
 			},
 		},
 		author: {
 			type: AuthorType,
-			resolve(parent, args) {
+			resolve(parent) {
 				const { authorId } = parent;
 				return Author.findById(authorId);
 			},
 		},
+		similar: {
+			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
+			resolve(parent, args){
+				const { authorId, genreId } = parent;
+				const { exclude } = args;
+				return Book.find({ $and: [{ authorId }, { genreId }, { _id: { $ne: exclude } }] });
+			}
+		}
 	}),
 });
 
@@ -31,13 +41,20 @@ const AuthorType = new GraphQLObjectType({
 	name: 'Author',
 	fields: () => ({
 		id: { type: GraphQLID },
-		name: { type: GraphQLString },
-		age: { type: GraphQLInt },
+		firstName: { type: GraphQLString },
+		lastName: { type: GraphQLString },
 		books: {
 			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
 			resolve(parent, args) {
 				const { id } = parent;
-				return Book.find({ authorId: id });
+				const { exclude } = args;
+
+				if (exclude) {
+					return Book.find({ $and: [{ authorId: id }, { _id: { $ne: exclude } }] });
+				} else {
+					return Book.find({ authorId: id });
+				}
 			},
 		},
 	}),
@@ -50,9 +67,16 @@ const GenreType = new GraphQLObjectType({
 		name: { type: GraphQLString },
 		books: {
 			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
 			resolve(parent, args) {
 				const { id } = parent;
-				return Book.find({ genreId: id });
+				const { exclude } = args;
+
+				if (exclude) {
+					return Book.find({ $and: [{ genreId: id }, { _id: { $ne: exclude } }] });
+				} else {
+					return Book.find({ genreId: id });
+				}
 			},
 		},
 	}),
@@ -87,6 +111,7 @@ const RootQuery = new GraphQLObjectType({
 		},
 		books: {
 			type: GraphQLList(BookType),
+			args: { exclude: { type: GraphQLID } },
 			resolve() {
 				return Book.find({});
 			},
@@ -112,12 +137,12 @@ const Mutation = new GraphQLObjectType({
 		addAuthor: {
 			type: AuthorType,
 			args: {
-				name: { type: GraphQLNonNull(GraphQLString) },
-				age: { type: GraphQLNonNull(GraphQLInt) },
+				firstName: { type: GraphQLNonNull(GraphQLString) },
+				lastName: { type: GraphQLNonNull(GraphQLString) },
 			},
 			resolve(parent, args) {
-				const { age, name } = args;
-				const author = new Author({ name, age });
+				const { firstName, lastName } = args;
+				const author = new Author({ firstName, lastName });
 				return author.save();
 			},
 		},
@@ -126,6 +151,7 @@ const Mutation = new GraphQLObjectType({
 			type: BookType,
 			args: {
 				name: { type: GraphQLNonNull(GraphQLString) },
+				year: { type: GraphQLNonNull(GraphQLString) },
 				genreId: { type: GraphQLNonNull(GraphQLID) },
 				authorId: { type: GraphQLNonNull(GraphQLID) },
 			},
