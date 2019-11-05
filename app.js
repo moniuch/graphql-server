@@ -12,6 +12,7 @@ app.use(cors());
 mongoose.connect('mongodb+srv://artur:test123@cluster0-nndtz.mongodb.net/test?retryWrites=true&w=majority', {
 		useNewUrlParser: true,
 		useUnifiedTopology: true,
+		useFindAndModify: false,
 	})
 	.then(() => console.log('connected to database'))
 	.catch(err => console.log(err));
