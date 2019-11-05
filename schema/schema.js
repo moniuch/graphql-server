@@ -28,12 +28,12 @@ const BookType = new GraphQLObjectType({
 		similar: {
 			type: GraphQLList(BookType),
 			args: { exclude: { type: GraphQLID } },
-			resolve(parent, args){
+			resolve(parent, args) {
 				const { authorId, genreId } = parent;
 				const { exclude } = args;
 				return Book.find({ $and: [{ authorId }, { genreId }, { _id: { $ne: exclude } }] });
-			}
-		}
+			},
+		},
 	}),
 });
 
@@ -151,7 +151,7 @@ const Mutation = new GraphQLObjectType({
 			type: BookType,
 			args: {
 				name: { type: GraphQLNonNull(GraphQLString) },
-				year: { type: GraphQLNonNull(GraphQLString) },
+				year: { type: GraphQLString },
 				genreId: { type: GraphQLNonNull(GraphQLID) },
 				authorId: { type: GraphQLNonNull(GraphQLID) },
 			},
@@ -159,6 +159,32 @@ const Mutation = new GraphQLObjectType({
 				const { authorId, name, genreId } = args;
 				const book = new Book({ name, genreId, authorId });
 				return book.save();
+			},
+		},
+
+		updateBook: {
+			type: BookType,
+			args: {
+				id: { type: GraphQLNonNull(GraphQLID) },
+				name: { type: GraphQLNonNull(GraphQLString) },
+				year: { type: GraphQLString },
+				genreId: { type: GraphQLNonNull(GraphQLID) },
+				authorId: { type: GraphQLNonNull(GraphQLID) },
+			},
+			resolve(parent, args) {
+				const { authorId, name, genreId } = args;
+				return Book.findOneAndUpdate({ _id: id }, { name, genreId, authorId });
+			},
+		},
+
+		deleteBook: {
+			type: BookType,
+			args: {
+				id: { type: GraphQLNonNull(GraphQLID) },
+			},
+			resolve(parent, args) {
+				const { id } = args;
+				return Book.findOneAndDelete({ _id: id });
 			},
 		},
 
